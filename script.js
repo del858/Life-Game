@@ -285,3 +285,23 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Приложение установлено');
     }
 });
+class GoogleSheetsSync {
+    constructor(sheetId) {
+        this.sheetId = sheetId;
+        this.scriptUrl = 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec';
+    }
+
+    async saveToSheets(data) {
+        // Нужно создать Google Apps Script
+        const response = await fetch(this.scriptUrl, {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+        return response.json();
+    }
+
+    async loadFromSheets() {
+        const response = await fetch(this.scriptUrl);
+        return response.json();
+    }
+}
