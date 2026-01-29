@@ -305,3 +305,20 @@ class GoogleSheetsSync {
         return response.json();
     }
 }
+init() {
+    // Проверяем, не сменился ли день
+    const today = new Date().toDateString();
+    const lastPlay = localStorage.getItem('lastPlayDate');
+    
+    if (lastPlay !== today) {
+        // Сбрасываем дневную статистику
+        const data = JSON.parse(localStorage.getItem('lifeGameData') || '{}');
+        data.dailyXP = 0;
+        data.lastActions = [];
+        data.lastPlayDate = today;
+        localStorage.setItem('lifeGameData', JSON.stringify(data));
+    }
+    
+    this.loadData();
+    // ... остальной код
+}
