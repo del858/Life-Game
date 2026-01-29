@@ -305,20 +305,21 @@ class GoogleSheetsSync {
         return response.json();
     }
 }
-init() {
-    // Проверяем, не сменился ли день
-    const today = new Date().toDateString();
-    const lastPlay = localStorage.getItem('lastPlayDate');
-    
-    if (lastPlay !== today) {
-        // Сбрасываем дневную статистику
-        const data = JSON.parse(localStorage.getItem('lifeGameData') || '{}');
-        data.dailyXP = 0;
-        data.lastActions = [];
-        data.lastPlayDate = today;
-        localStorage.setItem('lifeGameData', JSON.stringify(data));
+// Метод для полного сброса
+resetAllData() {
+    if (confirm('💀 ЭТО УДАЛИТ ВСЕ ДАННЫЕ! Уровни, XP, историю. Продолжить?')) {
+        // Вариант 1: Полный сброс
+        localStorage.removeItem('lifeGameData');
+        
+        // Вариант 2: Сброс только статистики, но сохранение настроек
+        // const settings = this.data.settings || {};
+        // this.data = { settings, level: 1, totalXP: 0, dailyXP: 0 };
+        // this.saveData();
+        
+        alert('✅ Все данные сброшены! Начинаем с чистого листа.');
+        location.reload();
     }
-    
-    this.loadData();
-    // ... остальной код
 }
+
+// И добавь кнопку в HTML:
+// <button onclick="game.resetAllData()">🔄 Сбросить всё</button>
