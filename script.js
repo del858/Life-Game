@@ -1,30 +1,50 @@
 // Основной класс приложения
 class LifeGame {
     constructor() {
-        this.version = 2;
+        this.version = 1;
         this.dataKey = 'lifeGameData';
+        this.categories = [
+            { id: 'work', name: 'Работа', color: '#007AFF' },
+            { id: 'health', name: 'Здоровье', color: '#34C759' },
+            { id: 'learning', name: 'Обучение', color: '#AF52DE' },
+            { id: 'personal', name: 'Личное', color: '#FF9500' }
+        ];
+        
+        this.achievements = [
+            { id: 1, title: 'Первый шаг', description: 'Выполни первую задачу', icon: '🚀', earned: false },
+            { id: 2, title: 'Неделя без пропусков', description: '7 дней подряд с активностью', icon: '🔥', earned: false },
+            { id: 3, title: 'Проект завершён', description: 'Заверши свой первый проект', icon: '🏆', earned: false },
+            { id: 4, title: 'Мастер привычек', description: 'Выполняй все привычки неделю', icon: '💪', earned: false },
+            { id: 5, title: 'Уровень 5', description: 'Достигни 5 уровня', icon: '⭐', earned: false }
+        ];
+        
         this.init();
     }
 
+    // Инициализация приложения
     init() {
         this.loadData();
-        this.initUI();
-        this.initEventListeners();
+        this.setupEventListeners();
+        this.setupDefaultCategories();
+        this.renderProjects();
+        this.renderHabits();
+        this.renderAchievements();
+        this.updateStats();
         this.checkDailyReset();
-        this.updateUI();
+        this.showToast('Добро пожаловать в Life Game!', 'success');
     }
 
-    // Загрузка данных
+    // Загрузка данных из localStorage
     loadData() {
         const saved = localStorage.getItem(this.dataKey);
         if (saved) {
             try {
                 const data = JSON.parse(saved);
-                if (data.version === this.version) {
-                    this.data = data;
-                } else {
-                    // Миграция данных при обновлении версии
-                    this.data = this.migrateData(data);
+                this.data = data;
+                
+                // Миграция старых данных
+                if (!this.data.version) {
+                    this.data = this.migrateOldData(data);
                 }
             } catch (e) {
                 console.error('Ошибка загрузки данных:', e);
@@ -47,103 +67,203 @@ class LifeGame {
                 coins: 0,
                 streak: 0,
                 maxStreak: 0,
-                lastActive: new Date().toISOString().split('T')[0],
-                theme: 'dark'
+                lastActive: new Date().toISOString().split('T')[0]
             },
-            categories: [
-                { id: 'work', name: 'Работа', color: '#6a11cb' },
-                { id: 'health', name: 'Здоровье', color: '#00ff88' },
-                { id: 'learning', name: 'Обучение', color: '#4dccff' },
-                { id: 'personal', name: 'Личное', color: '#ffcc00' }
-            ],
             projects: [],
             habits: [],
-            achievements: [
-                {
-                    id: 1,
-                    title: 'Первый шаг',
-                    description: 'Выполнил первую задачу',
-                    icon: '🥇',
-                    earned: false,
-                    type: 'productivity'
-                },
-                {
-                    id: 2,
-                    title: 'Неделя без пропусков',
-                    description: '7 дней подряд с активностью',
-                    icon: '🔥',
-                    earned: false,
-                    type: 'productivity'
-                },
-                {
-                    id: 3,
-                    title: 'ЗОЖник',
-                    description: 'Выполнял все привычки здоровья неделю',
-                    icon: '💪',
-                    earned: false,
-                    type: 'habits'
-                }
-            ],
-            shop: {
-                items: [],
-                purchased: []
-            },
+            achievements: this.achievements.map(a => ({ ...a })),
             stats: {
                 totalDays: 1,
+                completedTasks: 0,
                 completedProjects: 0,
-                totalTasksCompleted: 0,
-                weeklyReport: {}
+                totalHabits: 0
             }
         };
         this.saveData();
     }
 
+    // Миграция старых данных
+    migrateOldData(oldData) {
+        const newData = {
+            version: this.version,
+            user: oldData.user || {
+                level: 1,
+                xp: 0,
+                totalXP: 0,
+                xpToNextLevel: 100,
+                coins: 0,
+                streak: 0,
+                maxStreak: 0,
+                lastActive: new Date().toISOString().split('T')[0]
+            },
+            projects: oldData.projects || [],
+            habits: oldData.habits || [],
+            achievements: this.achievements.map(a => {
+                const oldAch = oldData.achievements?.find(o => o.id === a.id);
+                return oldAch ? { ...a, earned: oldAch.earned } : a;
+            }),
+            stats: oldData.stats || {
+                totalDays: 1,
+                completedTasks: 0,
+                completedProjects: 0,
+                totalHabits: 0
+            }
+        };
+        return newData;
+    }
+
     // Сохранение данных
     saveData() {
         localStorage.setItem(this.dataKey, JSON.stringify(this.data));
-        // Автоматический бэкап
-        this.createBackup();
     }
 
-    // Создание бэкапа
-    createBackup() {
-        const backupKey = `lifeGameBackup_${new Date().toISOString().split('T')[0]}`;
-        localStorage.setItem(backupKey, JSON.stringify(this.data));
-        
-        // Храним только 7 последних бэкапов
-        const backupKeys = Object.keys(localStorage)
-            .filter(key => key.startsWith('lifeGameBackup_'))
-            .sort()
-            .reverse();
-        
-        if (backupKeys.length > 7) {
-            for (let i = 7; i < backupKeys.length; i++) {
-                localStorage.removeItem(backupKeys[i]);
-            }
-        }
-    }
-
-    // Инициализация UI
-    initUI() {
-        // Установка темы
-        document.body.className = `${this.data.user.theme}-theme`;
-        
-        // Заполнение категорий в фильтрах
-        this.populateCategories();
-        
-        // Инициализация графиков
-        this.initCharts();
-    }
-
-    // Наполнение категорий
-    populateCategories() {
-        const categorySelects = document.querySelectorAll('select[id*="category"]');
-        categorySelects.forEach(select => {
-            select.innerHTML = '<option value="all">Все категории</option>' +
-                this.data.categories.map(cat => 
-                    `<option value="${cat.id}">${cat.name}</option>`
-                ).join('');
+    // Настройка обработчиков событий
+    setupEventListeners() {
+        // Навигация
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const tab = item.dataset.tab;
+                this.showTab(tab);
+            });
         });
+
+        // Переключение темы
+        document.getElementById('theme-toggle').addEventListener('click', () => {
+            this.toggleTheme();
+        });
+
+        // Кнопка настроек
+        document.getElementById('settings-btn').addEventListener('click', () => {
+            document.getElementById('settings-panel').classList.add('active');
+            this.renderCategories();
+        });
+
+        // Закрытие настроек
+        document.querySelector('.close-settings').addEventListener('click', () => {
+            document.getElementById('settings-panel').classList.remove('active');
+        });
+
+        // Создание проекта
+        document.getElementById('new-project-btn').addEventListener('click', () => {
+            this.showProjectModal();
+        });
+
+        // Создание привычки
+        document.getElementById('new-habit-btn').addEventListener('click', () => {
+            this.showHabitModal();
+        });
+
+        // Фильтры проектов
+        document.getElementById('category-filter').addEventListener('change', () => {
+            this.renderProjects();
+        });
+        
+        document.getElementById('status-filter').addEventListener('change', () => {
+            this.renderProjects();
+        });
+        
+        document.getElementById('sort-by').addEventListener('change', () => {
+            this.renderProjects();
+        });
+
+        // Добавление категории
+        document.getElementById('add-category-btn').addEventListener('click', () => {
+            this.addCategory();
+        });
+
+        // Экспорт данных
+        document.getElementById('export-btn').addEventListener('click', () => {
+            this.exportData();
+        });
+
+        // Импорт данных
+        document.getElementById('import-btn').addEventListener('click', () => {
+            document.getElementById('import-file').click();
+        });
+
+        document.getElementById('import-file').addEventListener('change', (e) => {
+            this.importData(e);
+        });
+
+        // Сброс данных
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            if (confirm('Вы уверены? Все данные будут удалены.')) {
+                localStorage.clear();
+                location.reload();
+            }
+        });
+
+        // Закрытие модальных окон
+        document.querySelectorAll('.close-modal').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.modal').forEach(modal => {
+                    modal.classList.remove('active');
+                });
+            });
+        });
+
+        // Закрытие модальных окон при клике вне
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+        });
+    }
+
+    // Настройка категорий по умолчанию
+    setupDefaultCategories() {
+        const categorySelects = document.querySelectorAll('#project-category, #habit-category, #category-filter');
+        categorySelects.forEach(select => {
+            if (select.id === 'category-filter') {
+                select.innerHTML = '<option value="all">Все категории</option>';
+            }
+            this.categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category.id;
+                option.textContent = category.name;
+                select.appendChild(option);
+            });
+        });
+    }
+
+    // Показать вкладку
+    showTab(tabName) {
+        // Скрыть все вкладки
+        document.querySelectorAll('.content-section').forEach(section => {
+            section.classList.remove('active');
+        });
+
+        // Убрать активный класс у всех навигационных элементов
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.classList.remove('active');
+        });
+
+        // Показать выбранную вкладку
+        document.getElementById(`${tabName}-section`).classList.add('active');
+
+        // Активировать соответствующий навигационный элемент
+        document.querySelector(`.nav-item[data-tab="${tabName}"]`).classList.add('active');
+    }
+
+    // Переключение темы
+    toggleTheme() {
+        const body = document.body;
+        const themeBtn = document.getElementById('theme-toggle');
+        
+        if (body.classList.contains('light-theme')) {
+            body.classList.remove('light-theme');
+            body.classList.add('dark-theme');
+            themeBtn.innerHTML = '<i class="fas fa-sun"></i>';
+            this.showToast('Тёмная тема включена');
+        } else {
+            body.classList.remove('dark-theme');
+            body.classList.add('light-theme');
+            themeBtn.innerHTML = '<i class="fas fa-moon"></i>';
+            this.showToast('Светлая тема включена');
+        }
     }
 
     // Проверка ежедневного сброса
@@ -155,19 +275,34 @@ class LifeGame {
             yesterday.setDate(yesterday.getDate() - 1);
             const yesterdayStr = yesterday.toISOString().split('T')[0];
             
+            // Проверяем стрик
             if (this.data.user.lastActive === yesterdayStr) {
                 this.data.user.streak++;
                 if (this.data.user.streak > this.data.user.maxStreak) {
                     this.data.user.maxStreak = this.data.user.streak;
                 }
-            } else {
+            } else if (this.data.user.lastActive !== today) {
                 this.data.user.streak = 1;
             }
             
             this.data.user.lastActive = today;
             this.data.stats.totalDays++;
+            
+            // Сбрасываем ежедневные привычки
+            this.resetDailyHabits();
+            
             this.saveData();
+            this.updateUI();
         }
+    }
+
+    // Сброс ежедневных привычек
+    resetDailyHabits() {
+        this.data.habits.forEach(habit => {
+            if (habit.type === 'daily') {
+                habit.completed = false;
+            }
+        });
     }
 
     // Добавление XP
@@ -175,7 +310,7 @@ class LifeGame {
         this.data.user.xp += amount;
         this.data.user.totalXP += amount;
         
-        // Проверка уровня
+        // Проверка нового уровня
         while (this.data.user.xp >= this.data.user.xpToNextLevel) {
             this.data.user.xp -= this.data.user.xpToNextLevel;
             this.data.user.level++;
@@ -183,153 +318,130 @@ class LifeGame {
             
             // Награда за уровень
             this.data.user.coins += this.data.user.level * 10;
-            this.showNotification(`🎉 Достигнут уровень ${this.data.user.level}! +${this.data.user.level * 10} монет`);
+            this.showToast(`🎉 Уровень ${this.data.user.level}! +${this.data.user.level * 10} монет`, 'success');
+            
+            // Проверка ачивки за уровень
+            if (this.data.user.level >= 5) {
+                this.unlockAchievement(5);
+            }
         }
         
         // Добавление монет
-        const coinsEarned = Math.floor(amount / 10);
+        const coinsEarned = Math.floor(amount / 5);
         this.data.user.coins += coinsEarned;
         
         this.saveData();
         this.updateUI();
         
-        // Проверка ачивок
-        this.checkAchievements();
-        
-        this.showNotification(`+${amount} XP получено!`);
-    }
-
-    // Показать уведомление
-    showNotification(message, type = 'success') {
-        const notification = document.createElement('div');
-        notification.className = `notification ${type}`;
-        notification.textContent = message;
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 25px;
-            background: ${type === 'success' ? '#00b09b' : '#ff416c'};
-            color: white;
-            border-radius: 10px;
-            z-index: 1000;
-            animation: slideIn 0.3s ease;
-        `;
-        
-        document.getElementById('notification-area').appendChild(notification);
-        
-        setTimeout(() => {
-            notification.style.animation = 'slideOut 0.3s ease';
-            setTimeout(() => notification.remove(), 300);
-        }, 3000);
-        
-        // Добавляем стили анимации
-        if (!document.querySelector('#notification-styles')) {
-            const style = document.createElement('style');
-            style.id = 'notification-styles';
-            style.textContent = `
-                @keyframes slideIn {
-                    from { transform: translateX(100%); opacity: 0; }
-                    to { transform: translateX(0); opacity: 1; }
-                }
-                @keyframes slideOut {
-                    from { transform: translateX(0); opacity: 1; }
-                    to { transform: translateX(100%); opacity: 0; }
-                }
-            `;
-            document.head.appendChild(style);
+        if (source) {
+            this.showToast(`+${amount} XP (${source})`, 'success');
         }
     }
 
     // Обновление UI
     updateUI() {
-        // Обновляем пользовательскую информацию
+        // Обновляем информацию пользователя
         document.getElementById('level').textContent = this.data.user.level;
         document.getElementById('current-xp').textContent = this.data.user.xp;
         document.getElementById('needed-xp').textContent = this.data.user.xpToNextLevel;
         document.getElementById('coins').textContent = this.data.user.coins;
-        document.getElementById('shop-coins').textContent = this.data.user.coins;
-        document.getElementById('streak').textContent = `${this.data.user.streak} дней`;
         
         // Обновляем прогресс-бар XP
         const xpPercent = (this.data.user.xp / this.data.user.xpToNextLevel) * 100;
-        document.getElementById('xp-progress').style.width = `${xpPercent}%`;
+        document.getElementById('xp-progress-fill').style.width = `${xpPercent}%`;
+        document.getElementById('xp-text').textContent = `${this.data.user.xp}/${this.data.user.xpToNextLevel} XP`;
         
-        // Рендерим проекты
-        this.renderProjects();
-        
-        // Рендерим привычки
-        this.renderHabits();
-        
-        // Рендерим ачивки
-        this.renderAchievements();
-        
-        // Обновляем статистику
         this.updateStats();
+    }
+
+    // Обновление статистики
+    updateStats() {
+        document.getElementById('streak').textContent = this.data.user.streak;
+        document.getElementById('completed-tasks').textContent = this.data.stats.completedTasks;
+        document.getElementById('active-projects').textContent = this.data.projects.filter(p => !p.completed).length;
+        document.getElementById('total-coins').textContent = this.data.user.coins;
+        
+        this.renderProjectProgress();
     }
 
     // Рендеринг проектов
     renderProjects() {
-        const projectsGrid = document.getElementById('projects-grid');
-        if (!projectsGrid) return;
+        const grid = document.getElementById('projects-grid');
+        if (!grid) return;
         
-        const categoryFilter = document.getElementById('project-category-filter')?.value || 'all';
-        const statusFilter = document.getElementById('project-status-filter')?.value || 'all';
-        const sortBy = document.getElementById('project-sort')?.value || 'deadline';
-        
-        let projects = [...this.data.projects];
+        const categoryFilter = document.getElementById('category-filter').value;
+        const statusFilter = document.getElementById('status-filter').value;
+        const sortBy = document.getElementById('sort-by').value;
         
         // Фильтрация
-        if (categoryFilter !== 'all') {
-            projects = projects.filter(p => p.category === categoryFilter);
-        }
-        
-        if (statusFilter === 'active') {
-            projects = projects.filter(p => !p.completed && !this.isProjectOverdue(p));
-        } else if (statusFilter === 'completed') {
-            projects = projects.filter(p => p.completed);
-        } else if (statusFilter === 'overdue') {
-            projects = projects.filter(p => this.isProjectOverdue(p) && !p.completed);
-        }
+        let projects = this.data.projects.filter(project => {
+            if (categoryFilter !== 'all' && project.category !== categoryFilter) {
+                return false;
+            }
+            
+            if (statusFilter === 'active' && project.completed) {
+                return false;
+            }
+            
+            if (statusFilter === 'completed' && !project.completed) {
+                return false;
+            }
+            
+            return true;
+        });
         
         // Сортировка
         projects.sort((a, b) => {
-            if (sortBy === 'deadline') {
-                return new Date(a.deadline || '9999-12-31') - new Date(b.deadline || '9999-12-31');
-            } else if (sortBy === 'progress') {
-                return this.getProjectProgress(b) - this.getProjectProgress(a);
-            } else if (sortBy === 'newest') {
-                return new Date(b.created) - new Date(a.created);
+            switch (sortBy) {
+                case 'progress':
+                    return this.getProjectProgress(b) - this.getProjectProgress(a);
+                case 'name':
+                    return a.title.localeCompare(b.title);
+                case 'deadline':
+                default:
+                    if (!a.deadline && !b.deadline) return 0;
+                    if (!a.deadline) return 1;
+                    if (!b.deadline) return -1;
+                    return new Date(a.deadline) - new Date(b.deadline);
             }
-            return 0;
         });
         
         // Рендеринг
-        projectsGrid.innerHTML = projects.map(project => {
+        grid.innerHTML = projects.map(project => {
             const progress = this.getProjectProgress(project);
-            const isOverdue = this.isProjectOverdue(project);
-            const isSoon = this.isDeadlineSoon(project.deadline);
-            const category = this.data.categories.find(c => c.id === project.category);
+            const category = this.categories.find(c => c.id === project.category);
+            const isOverdue = project.deadline && new Date(project.deadline) < new Date() && !project.completed;
+            const isSoon = project.deadline && !project.completed && 
+                          new Date(project.deadline) > new Date() && 
+                          new Date(project.deadline) - new Date() < 7 * 24 * 60 * 60 * 1000;
             
             return `
-                <div class="project-card ${project.completed ? 'completed' : ''} ${isOverdue ? 'overdue' : ''}">
+                <div class="project-card ${isOverdue ? 'overdue' : ''} ${isSoon ? 'soon' : ''}">
                     <div class="project-header">
                         <div>
                             <h3 class="project-title">${project.title}</h3>
-                            <span class="project-category" style="background: ${category?.color || '#666'}22; color: ${category?.color || '#666'}">
+                            <span class="project-category" style="background-color: ${category?.color}20; color: ${category?.color}">
                                 ${category?.name || 'Без категории'}
                             </span>
                         </div>
-                        <button class="btn-secondary" onclick="game.toggleProjectDetails(${project.id})">
-                            <i class="fas fa-ellipsis-v"></i>
-                        </button>
+                        <div class="project-actions">
+                            <button class="btn-icon" onclick="game.toggleProject(${project.id})" title="${project.completed ? 'Возобновить' : 'Завершить'}">
+                                <i class="fas fa-${project.completed ? 'redo' : 'check'}"></i>
+                            </button>
+                            <button class="btn-icon" onclick="game.editProject(${project.id})" title="Редактировать">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-icon" onclick="game.deleteProject(${project.id})" title="Удалить">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
                     </div>
                     
                     ${project.description ? `<p class="project-description">${project.description}</p>` : ''}
                     
                     <div class="project-progress">
                         <div class="progress-bar">
-                            <div class="progress-fill" style="width: ${progress}%; background: ${category?.color || '#666'}"></div>
+                            <div class="progress-fill" style="width: ${progress}%; background-color: ${category?.color || '#007AFF'}"></div>
                         </div>
                         <div class="progress-text">
                             <span>Прогресс</span>
@@ -343,111 +455,56 @@ class LifeGame {
                             `До ${new Date(project.deadline).toLocaleDateString('ru-RU')}` : 
                             'Без дедлайна'
                         }
-                        ${isOverdue ? '<span class="deadline-overdue">Просрочено</span>' : ''}
-                        ${isSoon && !isOverdue && !project.completed ? '<span class="deadline-soon">Скоро дедлайн</span>' : ''}
+                        ${isOverdue ? '<span class="deadline-overdue"> • Просрочено</span>' : ''}
+                        ${isSoon && !isOverdue ? '<span class="deadline-soon"> • Скоро дедлайн</span>' : ''}
                     </div>
                     
-                    <div class="project-actions">
-                        <button class="btn-primary" onclick="game.toggleTaskComplete(${project.id})">
-                            <i class="fas fa-check"></i> Отметить задачу
-                        </button>
-                        <button class="btn-success" onclick="game.completeProject(${project.id})" ${project.completed ? 'disabled' : ''}>
-                            <i class="fas fa-flag-checkered"></i> Завершить
-                        </button>
-                        <button class="btn-danger" onclick="game.deleteProject(${project.id})">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                    
-                    <div class="project-tasks" id="tasks-${project.id}" style="display: none; margin-top: 20px;">
-                        <h4>Задачи:</h4>
-                        <ul class="tasks-list">
-                            ${project.tasks?.map((task, index) => `
-                                <li class="task-item ${task.completed ? 'completed' : ''}">
+                    <div class="project-tasks">
+                        <h4>Задачи (${this.getCompletedTasksCount(project)}/${project.tasks.length})</h4>
+                        <ul>
+                            ${project.tasks.map((task, index) => `
+                                <li style="margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
                                     <input type="checkbox" ${task.completed ? 'checked' : ''} 
-                                           onchange="game.toggleTask(${project.id}, ${index})">
-                                    <span>${task.title} (+${task.xp || 10} XP)</span>
-                                    ${task.subtasks ? `
-                                        <ul class="subtasks">
-                                            ${task.subtasks.map(subtask => `
-                                                <li class="${subtask.completed ? 'completed' : ''}">
-                                                    <input type="checkbox" ${subtask.completed ? 'checked' : ''}>
-                                                    <span>${subtask.title}</span>
-                                                </li>
-                                            `).join('')}
-                                        </ul>
-                                    ` : ''}
+                                           onchange="game.toggleTask(${project.id}, ${index})"
+                                           style="cursor: pointer;">
+                                    <span style="flex: 1; ${task.completed ? 'text-decoration: line-through; opacity: 0.7;' : ''}">
+                                        ${task.title} (+${task.xp} XP)
+                                    </span>
                                 </li>
-                            `).join('') || '<li>Нет задач</li>'}
+                            `).join('')}
                         </ul>
                     </div>
                 </div>
             `;
         }).join('');
+        
+        if (projects.length === 0) {
+            grid.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: #8E8E93;">
+                    <i class="fas fa-inbox" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                    <h3>Нет проектов</h3>
+                    <p>Создайте свой первый проект!</p>
+                    <button class="btn btn-primary" onclick="game.showProjectModal()">
+                        <i class="fas fa-plus"></i> Создать проект
+                    </button>
+                </div>
+            `;
+        }
     }
 
     // Получение прогресса проекта
     getProjectProgress(project) {
         if (!project.tasks || project.tasks.length === 0) return 0;
-        
-        const totalTasks = this.countAllTasks(project.tasks);
-        const completedTasks = this.countCompletedTasks(project.tasks);
-        
-        return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+        const completed = project.tasks.filter(t => t.completed).length;
+        return Math.round((completed / project.tasks.length) * 100);
     }
 
-    // Подсчет всех задач (включая подзадачи)
-    countAllTasks(tasks) {
-        let count = 0;
-        tasks.forEach(task => {
-            count++;
-            if (task.subtasks) {
-                count += task.subtasks.length;
-            }
-        });
-        return count;
+    // Получение количества выполненных задач
+    getCompletedTasksCount(project) {
+        return project.tasks ? project.tasks.filter(t => t.completed).length : 0;
     }
 
-    // Подсчет выполненных задач
-    countCompletedTasks(tasks) {
-        let count = 0;
-        tasks.forEach(task => {
-            if (task.completed) count++;
-            if (task.subtasks) {
-                task.subtasks.forEach(subtask => {
-                    if (subtask.completed) count++;
-                });
-            }
-        });
-        return count;
-    }
-
-    // Проверка просроченности проекта
-    isProjectOverdue(project) {
-        if (project.completed || !project.deadline) return false;
-        const today = new Date();
-        const deadline = new Date(project.deadline);
-        return deadline < today;
-    }
-
-    // Проверка скорого дедлайна (за неделю)
-    isDeadlineSoon(deadline) {
-        if (!deadline) return false;
-        const today = new Date();
-        const deadlineDate = new Date(deadline);
-        const weekInMs = 7 * 24 * 60 * 60 * 1000;
-        return deadlineDate - today < weekInMs && deadlineDate >= today;
-    }
-
-    // Переключение видимости задач проекта
-    toggleProjectDetails(projectId) {
-        const tasksDiv = document.getElementById(`tasks-${projectId}`);
-        if (tasksDiv) {
-            tasksDiv.style.display = tasksDiv.style.display === 'none' ? 'block' : 'none';
-        }
-    }
-
-    // Отметка задачи
+    // Переключение задачи
     toggleTask(projectId, taskIndex) {
         const project = this.data.projects.find(p => p.id === projectId);
         if (!project || !project.tasks[taskIndex]) return;
@@ -455,38 +512,57 @@ class LifeGame {
         const task = project.tasks[taskIndex];
         task.completed = !task.completed;
         
-        // Начисляем XP за задачу
+        // Начисление XP
         if (task.completed) {
-            const xp = task.xp || 10;
-            this.addXP(xp, `Задача: ${task.title}`);
-            this.data.stats.totalTasksCompleted++;
+            this.addXP(task.xp, `Задача: ${task.title}`);
+            this.data.stats.completedTasks++;
+            
+            // Проверка ачивки "Первый шаг"
+            if (this.data.stats.completedTasks === 1) {
+                this.unlockAchievement(1);
+            }
+        } else {
+            this.data.stats.completedTasks--;
         }
         
-        // Проверяем, завершен ли проект
-        const progress = this.getProjectProgress(project);
-        if (progress === 100 && !project.completed) {
+        // Проверка завершения проекта
+        const allCompleted = project.tasks.every(t => t.completed);
+        if (allCompleted && !project.completed) {
             project.completed = true;
-            this.addXP(project.tasks.length * 20, `Проект: ${project.title}`);
             this.data.stats.completedProjects++;
-            this.showNotification(`🎉 Проект "${project.title}" завершен!`);
+            this.addXP(project.tasks.length * 20, `Проект завершён: ${project.title}`);
+            this.showToast(`🎉 Проект "${project.title}" завершён!`, 'success');
+            
+            // Проверка ачивки "Проект завершён"
+            this.unlockAchievement(3);
+        } else if (!allCompleted && project.completed) {
+            project.completed = false;
+            this.data.stats.completedProjects--;
         }
         
         this.saveData();
+        this.renderProjects();
         this.updateUI();
     }
 
-    // Завершение проекта
-    completeProject(projectId) {
+    // Переключение проекта (завершение/возобновление)
+    toggleProject(projectId) {
         const project = this.data.projects.find(p => p.id === projectId);
-        if (project) {
-            project.completed = true;
-            // Начисляем бонусные XP за завершение
-            this.addXP(project.tasks.length * 30, `Завершение проекта: ${project.title}`);
+        if (!project) return;
+        
+        project.completed = !project.completed;
+        
+        if (project.completed) {
             this.data.stats.completedProjects++;
-            this.saveData();
-            this.updateUI();
-            this.showNotification(`Проект "${project.title}" завершен!`);
+            this.showToast(`Проект "${project.title}" завершён`);
+        } else {
+            this.data.stats.completedProjects--;
+            this.showToast(`Проект "${project.title}" возобновлён`);
         }
+        
+        this.saveData();
+        this.renderProjects();
+        this.updateUI();
     }
 
     // Удаление проекта
@@ -494,162 +570,239 @@ class LifeGame {
         if (confirm('Удалить проект? Это действие нельзя отменить.')) {
             this.data.projects = this.data.projects.filter(p => p.id !== projectId);
             this.saveData();
-            this.updateUI();
+            this.renderProjects();
+            this.showToast('Проект удалён');
         }
     }
 
-    // Инициализация событий
-    initEventListeners() {
-        // Навигация
-        document.querySelectorAll('.nav-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const section = e.target.closest('.nav-btn').dataset.section;
-                this.showSection(section);
-            });
-        });
-
-        // Новая кнопка проекта
-        document.getElementById('new-project-btn')?.addEventListener('click', () => {
-            this.showProjectModal();
-        });
-
-        // Новая кнопка привычки
-        document.getElementById('new-habit-btn')?.addEventListener('click', () => {
-            this.showHabitModal();
-        });
-
-        // Переключение темы
-        document.getElementById('theme-toggle')?.addEventListener('click', () => {
-            this.toggleTheme();
-        });
-
-        // Экспорт данных
-        document.getElementById('export-data-btn')?.addEventListener('click', () => {
-            this.exportData();
-        });
-
-        // Импорт данных
-        document.getElementById('import-data-btn')?.addEventListener('click', () => {
-            document.getElementById('import-file').click();
-        });
-
-        document.getElementById('import-file')?.addEventListener('change', (e) => {
-            this.importData(e);
-        });
-
-        // Сброс данных
-        document.getElementById('reset-data-btn')?.addEventListener('click', () => {
-            if (confirm('ВНИМАНИЕ! Это удалит ВСЕ данные. Продолжить?')) {
-                localStorage.clear();
-                location.reload();
-            }
-        });
+    // Редактирование проекта (заглушка)
+    editProject(projectId) {
+        this.showToast('Редактирование в разработке', 'info');
     }
 
-    // Показать секцию
-    showSection(sectionName) {
-        // Скрыть все секции
-        document.querySelectorAll('.content-section').forEach(section => {
-            section.classList.remove('active');
+    // Показать модальное окно проекта
+    showProjectModal() {
+        const modal = document.getElementById('project-modal');
+        const form = document.getElementById('project-form');
+        
+        // Сброс формы
+        form.reset();
+        
+        // Заполнение категорий
+        const categorySelect = document.getElementById('project-category');
+        categorySelect.innerHTML = '';
+        this.categories.forEach(category => {
+            const option = document.createElement('option');
+            option.value = category.id;
+            option.textContent = category.name;
+            categorySelect.appendChild(option);
         });
         
-        // Деактивировать все кнопки навигации
-        document.querySelectorAll('.nav-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        
-        // Показать выбранную секцию
-        document.getElementById(`${sectionName}-section`)?.classList.add('active');
-        
-        // Активировать соответствующую кнопку
-        document.querySelector(`.nav-btn[data-section="${sectionName}"]`)?.classList.add('active');
-    }
-
-    // Переключение темы
-    toggleTheme() {
-        this.data.user.theme = this.data.user.theme === 'dark' ? 'light' : 'dark';
-        document.body.className = `${this.data.user.theme}-theme`;
-        this.saveData();
-    }
-
-    // Экспорт данных
-    exportData() {
-        const dataStr = JSON.stringify(this.data, null, 2);
-        const dataBlob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(dataBlob);
-        
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `life-game-backup-${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        this.showNotification('Данные экспортированы!');
-    }
-
-    // Импорт данных
-    importData(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const importedData = JSON.parse(e.target.result);
-                
-                if (importedData.version && importedData.version === this.version) {
-                    if (confirm('Заменить текущие данные импортированными?')) {
-                        this.data = importedData;
-                        this.saveData();
-                        location.reload();
-                    }
-                } else {
-                    alert('Неверная версия файла или поврежденные данные.');
-                }
-            } catch (error) {
-                alert('Ошибка при чтении файла.');
-            }
+        // Обработчик отправки формы
+        form.onsubmit = (e) => {
+            e.preventDefault();
+            this.createProject();
         };
-        reader.readAsText(file);
         
-        // Сброс input
-        event.target.value = '';
+        // Обработчик добавления задачи
+        document.getElementById('add-task-btn').onclick = () => {
+            this.addTaskInput();
+        };
+        
+        // Инициализация с одной задачей
+        const tasksContainer = document.getElementById('tasks-container');
+        tasksContainer.innerHTML = `
+            <div class="task-input">
+                <input type="text" class="task-name" placeholder="Название задачи" required>
+                <input type="number" class="task-xp" placeholder="XP" min="1" value="10">
+                <button type="button" class="btn-icon remove-task" onclick="this.parentElement.remove()">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        `;
+        
+        modal.classList.add('active');
     }
 
-    // Проверка ачивок
-    checkAchievements() {
-        let newAchievements = [];
+    // Добавление поля задачи
+    addTaskInput() {
+        const tasksContainer = document.getElementById('tasks-container');
+        const taskDiv = document.createElement('div');
+        taskDiv.className = 'task-input';
+        taskDiv.innerHTML = `
+            <input type="text" class="task-name" placeholder="Название задачи" required>
+            <input type="number" class="task-xp" placeholder="XP" min="1" value="10">
+            <button type="button" class="btn-icon remove-task" onclick="this.parentElement.remove()">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
+        tasksContainer.appendChild(taskDiv);
+    }
+
+    // Создание проекта
+    createProject() {
+        const title = document.getElementById('project-name').value;
+        const description = document.getElementById('project-description').value;
+        const category = document.getElementById('project-category').value;
+        const deadline = document.getElementById('project-deadline').value;
         
-        // Проверяем ачивки продуктивности
-        if (this.data.stats.totalTasksCompleted >= 100) {
-            const ach = this.data.achievements.find(a => a.id === 1);
-            if (ach && !ach.earned) {
-                ach.earned = true;
-                ach.earnedAt = new Date().toISOString();
-                newAchievements.push(ach);
-            }
-        }
-        
-        if (this.data.user.streak >= 7) {
-            const ach = this.data.achievements.find(a => a.id === 2);
-            if (ach && !ach.earned) {
-                ach.earned = true;
-                ach.earnedAt = new Date().toISOString();
-                newAchievements.push(ach);
-            }
-        }
-        
-        // Показываем уведомления о новых ачивках
-        newAchievements.forEach(ach => {
-            this.showNotification(`🏆 Получена ачивка: ${ach.title}!`, 'success');
+        // Сбор задач
+        const taskInputs = document.querySelectorAll('.task-input');
+        const tasks = Array.from(taskInputs).map(input => {
+            return {
+                title: input.querySelector('.task-name').value,
+                xp: parseInt(input.querySelector('.task-xp').value) || 10,
+                completed: false
+            };
         });
         
-        if (newAchievements.length > 0) {
-            this.saveData();
-            this.renderAchievements();
+        const newProject = {
+            id: Date.now(),
+            title,
+            description,
+            category,
+            deadline: deadline || null,
+            completed: false,
+            tasks,
+            createdAt: new Date().toISOString()
+        };
+        
+        this.data.projects.push(newProject);
+        this.saveData();
+        this.renderProjects();
+        
+        // Закрытие модального окна
+        document.getElementById('project-modal').classList.remove('active');
+        
+        this.showToast(`Проект "${title}" создан`, 'success');
+    }
+
+    // Рендеринг привычек
+    renderHabits() {
+        const todayList = document.getElementById('today-habits-list');
+        const weekGrid = document.getElementById('week-grid');
+        
+        if (!todayList || !weekGrid) return;
+        
+        // Сегодняшние привычки
+        const todayHabits = this.data.habits.filter(habit => habit.type === 'daily');
+        todayList.innerHTML = todayHabits.map(habit => {
+            const category = this.categories.find(c => c.id === habit.category);
+            
+            return `
+                <div class="habit-item">
+                    <div class="habit-checkbox ${habit.completed ? 'checked' : ''}" 
+                         onclick="game.toggleHabit(${habit.id})">
+                        <i class="fas fa-check" style="font-size: 0.8rem; ${habit.completed ? '' : 'display: none;'}"></i>
+                    </div>
+                    <div class="habit-info">
+                        <div class="habit-name">${habit.title}</div>
+                        <div class="habit-xp">+${habit.xp} XP</div>
+                    </div>
+                    <span class="project-category" style="background-color: ${category?.color}20; color: ${category?.color}; font-size: 0.75rem;">
+                        ${category?.name || 'Без категории'}
+                    </span>
+                </div>
+            `;
+        }).join('');
+        
+        if (todayHabits.length === 0) {
+            todayList.innerHTML = `
+                <div style="text-align: center; padding: 2rem; color: #8E8E93;">
+                    <i class="fas fa-redo" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                    <p>Нет привычек на сегодня</p>
+                    <button class="btn btn-secondary" onclick="game.showHabitModal()">
+                        <i class="fas fa-plus"></i> Добавить привычку
+                    </button>
+                </div>
+            `;
         }
+        
+        // Недельная сетка
+        const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+        weekGrid.innerHTML = days.map(day => `
+            <div class="week-day">
+                ${day}
+            </div>
+        `).join('');
+    }
+
+    // Переключение привычки
+    toggleHabit(habitId) {
+        const habit = this.data.habits.find(h => h.id === habitId);
+        if (!habit) return;
+        
+        habit.completed = !habit.completed;
+        
+        if (habit.completed) {
+            this.addXP(habit.xp, `Привычка: ${habit.title}`);
+            this.data.stats.totalHabits++;
+            
+            // Проверка ачивки "Мастер привычек"
+            if (this.data.stats.totalHabits % 7 === 0) {
+                this.unlockAchievement(4);
+            }
+        } else {
+            this.data.stats.totalHabits--;
+        }
+        
+        this.saveData();
+        this.renderHabits();
+        this.updateUI();
+    }
+
+    // Показать модальное окно привычки
+    showHabitModal() {
+        const modal = document.getElementById('habit-modal');
+        const form = document.getElementById('habit-form');
+        
+        // Сброс формы
+        form.reset();
+        
+        // Заполнение категорий
+        const categorySelect = document.getElementById('habit-category');
+        categorySelect.innerHTML = '';
+        this.categories.forEach(category => {
+            const option = document.createElement('option');
+            option.value = category.id;
+            option.textContent = category.name;
+            categorySelect.appendChild(option);
+        });
+        
+        // Обработчик отправки формы
+        form.onsubmit = (e) => {
+            e.preventDefault();
+            this.createHabit();
+        };
+        
+        modal.classList.add('active');
+    }
+
+    // Создание привычки
+    createHabit() {
+        const title = document.getElementById('habit-name').value;
+        const category = document.getElementById('habit-category').value;
+        const xp = parseInt(document.getElementById('habit-xp').value) || 10;
+        const type = document.querySelector('input[name="habit-type"]:checked').value;
+        
+        const newHabit = {
+            id: Date.now(),
+            title,
+            category,
+            xp,
+            type,
+            completed: false,
+            createdAt: new Date().toISOString()
+        };
+        
+        this.data.habits.push(newHabit);
+        this.saveData();
+        this.renderHabits();
+        
+        // Закрытие модального окна
+        document.getElementById('habit-modal').classList.remove('active');
+        
+        this.showToast(`Привычка "${title}" создана`, 'success');
     }
 
     // Рендеринг ачивок
@@ -663,42 +816,41 @@ class LifeGame {
         document.getElementById('achieved-count').textContent = achieved;
         document.getElementById('total-achievements').textContent = total;
         
-        grid.innerHTML = this.data.achievements.map(ach => `
-            <div class="achievement-card ${ach.earned ? 'earned' : 'locked'}">
-                <div class="achievement-icon">${ach.icon}</div>
-                <div class="achievement-info">
-                    <h4>${ach.title}</h4>
-                    <p>${ach.description}</p>
+        grid.innerHTML = this.data.achievements.map(achievement => {
+            return `
+                <div class="achievement-card ${achievement.earned ? '' : 'locked'}">
+                    <div class="achievement-icon">${achievement.icon}</div>
+                    <div class="achievement-title">${achievement.title}</div>
+                    <div class="achievement-desc">${achievement.description}</div>
+                    <div class="achievement-status">
+                        ${achievement.earned ? 'Получено' : 'Не получено'}
+                    </div>
                 </div>
-                <div class="achievement-status">
-                    ${ach.earned ? 
-                        `<span class="earned-date">${new Date(ach.earnedAt).toLocaleDateString('ru-RU')}</span>` :
-                        '<span class="locked-label">Заблокировано</span>'
-                    }
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
-    // Инициализация графиков
-    initCharts() {
-        const ctx = document.getElementById('level-chart');
-        if (ctx) {
-            // Здесь будет код для Chart.js
-            // Пока оставляем заглушку
+    // Разблокировка ачивки
+    unlockAchievement(achievementId) {
+        const achievement = this.data.achievements.find(a => a.id === achievementId);
+        if (achievement && !achievement.earned) {
+            achievement.earned = true;
+            this.saveData();
+            this.renderAchievements();
+            this.showToast(`🏆 Ачивка получена: ${achievement.title}`, 'success');
         }
     }
 
-    // Обновление статистики
-    updateStats() {
-        const progressList = document.getElementById('projects-progress');
-        if (!progressList) return;
+    // Рендеринг прогресса проектов
+    renderProjectProgress() {
+        const container = document.getElementById('projects-progress');
+        if (!container) return;
         
         const activeProjects = this.data.projects.filter(p => !p.completed);
         
-        progressList.innerHTML = activeProjects.map(project => {
+        container.innerHTML = activeProjects.map(project => {
             const progress = this.getProjectProgress(project);
-            const category = this.data.categories.find(c => c.id === project.category);
+            const category = this.categories.find(c => c.id === project.category);
             
             return `
                 <div class="project-progress-item">
@@ -707,129 +859,173 @@ class LifeGame {
                         <span>${progress}%</span>
                     </div>
                     <div class="progress-bar">
-                        <div class="progress-fill" style="width: ${progress}%; background: ${category?.color || '#666'}"></div>
+                        <div class="progress-fill" style="width: ${progress}%; background-color: ${category?.color || '#007AFF'}"></div>
                     </div>
                 </div>
             `;
         }).join('');
+        
+        if (activeProjects.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #8E8E93;">Нет активных проектов</p>';
+        }
     }
 
-    // Показ модального окна проекта
-    showProjectModal() {
-        const modal = document.getElementById('project-modal');
-        modal.style.display = 'block';
+    // Рендеринг категорий в настройках
+    renderCategories() {
+        const container = document.getElementById('categories-list');
+        if (!container) return;
         
-        // Заполняем категории
-        const categorySelect = document.getElementById('project-category');
-        categorySelect.innerHTML = this.data.categories.map(cat => 
-            `<option value="${cat.id}">${cat.name}</option>`
-        ).join('');
-        
-        // Устанавливаем минимальную дату завтра
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        document.getElementById('project-deadline').min = tomorrow.toISOString().split('T')[0];
-        
-        // Обработчик формы
-        const form = document.getElementById('project-form');
-        form.onsubmit = (e) => {
-            e.preventDefault();
-            this.createProject();
-        };
-        
-        // Кнопка добавления задачи
-        document.getElementById('add-task-btn').onclick = () => {
-            this.addTaskInput();
-        };
-        
-        // Кнопка отмены
-        document.getElementById('cancel-project-btn').onclick = () => {
-            modal.style.display = 'none';
-            form.reset();
-        };
+        container.innerHTML = this.categories.map(category => `
+            <div class="category-item">
+                <div class="category-color" style="background-color: ${category.color}"></div>
+                <span class="category-name">${category.name}</span>
+                <button class="btn-icon" onclick="game.deleteCategory('${category.id}')">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        `).join('');
     }
 
-    // Создание проекта
-    createProject() {
-        const title = document.getElementById('project-title').value;
-        const description = document.getElementById('project-description').value;
-        const category = document.getElementById('project-category').value;
-        const deadline = document.getElementById('project-deadline').value;
+    // Добавление категории
+    addCategory() {
+        const nameInput = document.getElementById('new-category');
+        const colorInput = document.getElementById('category-color');
         
-        // Собираем задачи
-        const taskElements = document.querySelectorAll('.task-item');
-        const tasks = Array.from(taskElements).map((taskEl, index) => {
-            const titleInput = taskEl.querySelector('.task-title');
-            const xpInput = taskEl.querySelector('.task-xp');
-            return {
-                id: index + 1,
-                title: titleInput.value,
-                xp: parseInt(xpInput.value) || 10,
-                completed: false
-            };
-        });
+        const name = nameInput.value.trim();
+        const color = colorInput.value;
         
-        const newProject = {
-            id: Date.now(),
-            title,
-            description,
-            category,
-            deadline,
-            created: new Date().toISOString(),
-            completed: false,
-            tasks
+        if (!name) {
+            this.showToast('Введите название категории', 'error');
+            return;
+        }
+        
+        const newCategory = {
+            id: name.toLowerCase().replace(/\s+/g, '-'),
+            name,
+            color
         };
         
-        this.data.projects.push(newProject);
-        this.saveData();
-        this.updateUI();
+        this.categories.push(newCategory);
+        this.setupDefaultCategories();
+        this.renderCategories();
         
-        // Закрываем модалку и сбрасываем форму
-        document.getElementById('project-modal').style.display = 'none';
-        document.getElementById('project-form').reset();
+        // Сброс полей
+        nameInput.value = '';
+        colorInput.value = '#007AFF';
         
-        this.showNotification(`Проект "${title}" создан!`);
+        this.showToast(`Категория "${name}" добавлена`, 'success');
     }
 
-    // Добавление поля задачи
-    addTaskInput() {
-        const container = document.getElementById('tasks-container');
-        const taskDiv = document.createElement('div');
-        taskDiv.className = 'task-item';
-        taskDiv.innerHTML = `
-            <input type="text" class="task-title" placeholder="Название задачи" required>
-            <input type="number" class="task-xp" placeholder="XP" min="1" value="10">
-            <button type="button" class="remove-task-btn"><i class="fas fa-times"></i></button>
-        `;
+    // Удаление категории
+    deleteCategory(categoryId) {
+        if (this.categories.length <= 1) {
+            this.showToast('Должна быть хотя бы одна категория', 'error');
+            return;
+        }
         
-        taskDiv.querySelector('.remove-task-btn').onclick = () => {
-            taskDiv.remove();
+        this.categories = this.categories.filter(c => c.id !== categoryId);
+        this.setupDefaultCategories();
+        this.renderCategories();
+        this.showToast('Категория удалена');
+    }
+
+    // Экспорт данных
+    exportData() {
+        const data = {
+            ...this.data,
+            categories: this.categories
         };
         
-        container.appendChild(taskDiv);
+        const dataStr = JSON.stringify(data, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `life-game-backup-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        this.showToast('Данные экспортированы', 'success');
+    }
+
+    // Импорт данных
+    importData(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const importedData = JSON.parse(e.target.result);
+                
+                if (confirm('Заменить текущие данные импортированными?')) {
+                    // Сохраняем категории если они есть в импортированных данных
+                    if (importedData.categories) {
+                        this.categories = importedData.categories;
+                    }
+                    
+                    this.data = importedData;
+                    this.saveData();
+                    this.setupDefaultCategories();
+                    this.renderProjects();
+                    this.renderHabits();
+                    this.renderAchievements();
+                    this.updateUI();
+                    
+                    this.showToast('Данные импортированы', 'success');
+                }
+            } catch (error) {
+                this.showToast('Ошибка при импорте данных', 'error');
+                console.error('Import error:', error);
+            }
+        };
+        reader.readAsText(file);
+        
+        // Сброс input
+        event.target.value = '';
+    }
+
+    // Показать toast-уведомление
+    showToast(message, type = 'info') {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.className = 'toast show';
+        
+        // Стиль в зависимости от типа
+        if (type === 'success') {
+            toast.style.backgroundColor = '#34C759';
+        } else if (type === 'error') {
+            toast.style.backgroundColor = '#FF3B30';
+        } else if (type === 'info') {
+            toast.style.backgroundColor = '#007AFF';
+        }
+        
+        // Автоматическое скрытие
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 3000);
     }
 }
 
 // Инициализация приложения
-window.game = new LifeGame();
+let game;
 
-// Глобальные функции для использования в HTML
-window.toggleTaskComplete = (projectId) => {
-    game.toggleTaskComplete(projectId);
-};
-
-window.toggleTask = (projectId, taskIndex) => {
-    game.toggleTask(projectId, taskIndex);
-};
-
-window.completeProject = (projectId) => {
-    game.completeProject(projectId);
-};
-
-window.deleteProject = (projectId) => {
-    game.deleteProject(projectId);
-};
-
-window.toggleProjectDetails = (projectId) => {
-    game.toggleProjectDetails(projectId);
-};
+document.addEventListener('DOMContentLoaded', () => {
+    game = new LifeGame();
+    
+    // Глобальные функции для использования в HTML
+    window.game = game;
+    
+    // Закрытие модальных окон по клавише ESC
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.modal.active').forEach(modal => {
+                modal.classList.remove('active');
+            });
+            document.getElementById('settings-panel').classList.remove('active');
+        }
+    });
+});
