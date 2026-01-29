@@ -90,5 +90,17 @@
     </div>
 
     <script src="script.js"></script>
+    <div style="margin-top: 30px; padding: 20px; background: rgba(255,0,0,0.1); border-radius: 10px;">
+    <h3>⚙️ Отладка</h3>
+    <button onclick="localStorage.clear(); location.reload()" style="background: #ff4444;">
+        🔥 Сбросить ВСЕ
+    </button>
+    <button onclick="localStorage.setItem('lifeGameData', JSON.stringify({level:1,totalXP:0})); location.reload()">
+        🎮 Сбросить только прогресс
+    </button>
+    <button onclick="console.log(localStorage.getItem('lifeGameData'))">
+        📊 Показать данные
+    </button>
+</div>
 </body>
 </html>
