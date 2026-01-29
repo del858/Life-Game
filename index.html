@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 Life Game Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1><i class="fas fa-gamepad"></i> LIFE RPG</h1>
+            <div class="stats-bar">
+                <div class="stat">
+                    <span class="stat-label">Уровень</span>
+                    <span id="level" class="stat-value">1</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">XP</span>
+                    <span id="xp" class="stat-value">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Дней подряд</span>
+                    <span id="streak" class="stat-value">0</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="xp-buttons">
+            <h2><i class="fas fa-bolt"></i> Быстрые действия</h2>
+            <div class="buttons-grid">
+                <button class="action-btn" data-xp="50" data-category="code">
+                    <i class="fas fa-code"></i> Кодинг<br>+50 XP
+                </button>
+                <button class="action-btn" data-xp="30" data-category="youtube">
+                    <i class="fab fa-youtube"></i> YouTube<br>+30 XP
+                </button>
+                <button class="action-btn" data-xp="40" data-category="photo">
+                    <i class="fas fa-camera"></i> Фото<br>+40 XP
+                </button>
+                <button class="action-btn" data-xp="60" data-category="edit">
+                    <i class="fas fa-video"></i> Монтаж<br>+60 XP
+                </button>
+                <button class="action-btn" data-xp="25" data-category="study">
+                    <i class="fas fa-graduation-cap"></i> Учёба<br>+25 XP
+                </button>
+                <button class="action-btn" data-xp="20" data-category="health">
+                    <i class="fas fa-heart"></i> Здоровье<br>+20 XP
+                </button>
+            </div>
+        </div>
+
+        <div class="custom-input">
+            <h3><i class="fas fa-plus-circle"></i> Свой ввод</h3>
+            <input type="text" id="custom-task" placeholder="Что сделал?">
+            <input type="number" id="custom-xp" placeholder="XP" min="1" max="1000">
+            <select id="custom-category">
+                <option value="other">Категория</option>
+                <option value="code">Кодинг</option>
+                <option value="youtube">YouTube</option>
+                <option value="photo">Фото</option>
+                <option value="edit">Монтаж</option>
+            </select>
+            <button id="add-custom-btn">Добавить</button>
+        </div>
+
+        <div class="stats">
+            <h2><i class="fas fa-chart-line"></i> Статистика</h2>
+            <div class="category-stats">
+                <div class="category" id="code-stat">
+                    <div class="category-name">Кодинг</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <div class="category-xp">0 XP</div>
+                </div>
+                <!-- Остальные категории по аналогии -->
+            </div>
+        </div>
+
+        <div class="history">
+            <h3><i class="fas fa-history"></i> Последние действия</h3>
+            <ul id="history-list"></ul>
+        </div>
+
+        <button id="export-btn"><i class="fas fa-download"></i> Экспорт данных</button>
+        <button id="reset-btn" class="danger"><i class="fas fa-redo"></i> Сбросить день</button>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
