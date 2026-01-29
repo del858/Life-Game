@@ -3,25 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎮 Life Game - Твоя жизнь в игре</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Life Game • Играй свою жизнь</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <style>
+        /* CSS будет вставлен ниже */
+    </style>
 </head>
-<body class="dark-theme">
+<body class="light-theme">
     <div class="container">
-        <!-- Шапка -->
-        <header class="header">
-            <div class="header-left">
-                <div class="logo">🎮 LIFE GAME</div>
-                <div class="theme-toggle">
-                    <button id="theme-toggle">
-                        <i class="fas fa-sun"></i> / <i class="fas fa-moon"></i>
-                    </button>
+        <!-- Top Navigation -->
+        <nav class="top-nav">
+            <div class="nav-left">
+                <div class="app-title">
+                    <i class="fas fa-gamepad"></i>
+                    <h1>Life Game</h1>
+                </div>
+                <div class="nav-items">
+                    <a href="#" class="nav-item active" data-tab="projects">
+                        <i class="fas fa-bullseye"></i>
+                        <span>Проекты</span>
+                    </a>
+                    <a href="#" class="nav-item" data-tab="habits">
+                        <i class="fas fa-redo"></i>
+                        <span>Привычки</span>
+                    </a>
+                    <a href="#" class="nav-item" data-tab="stats">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Статистика</span>
+                    </a>
+                    <a href="#" class="nav-item" data-tab="achievements">
+                        <i class="fas fa-trophy"></i>
+                        <span>Ачивки</span>
+                    </a>
                 </div>
             </div>
-            
-            <div class="header-right">
+            <div class="nav-right">
                 <div class="xp-display">
                     <div class="level-badge">
                         <span class="level-label">Уровень</span>
@@ -29,259 +45,254 @@
                     </div>
                     <div class="xp-progress">
                         <div class="xp-bar">
-                            <div id="xp-progress" class="xp-fill"></div>
+                            <div id="xp-progress-fill" class="xp-fill"></div>
                         </div>
-                        <div class="xp-text">
-                            <span id="current-xp">0</span>/<span id="needed-xp">100</span> XP
-                        </div>
+                        <span id="xp-text" class="xp-text">0/100 XP</span>
                     </div>
                     <div class="coins-display">
                         <i class="fas fa-coins"></i>
                         <span id="coins">0</span>
                     </div>
                 </div>
+                <button class="icon-btn" id="theme-toggle">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <button class="icon-btn" id="settings-btn">
+                    <i class="fas fa-cog"></i>
+                </button>
             </div>
-        </header>
+        </nav>
 
-        <!-- Основной контент -->
+        <!-- Main Content -->
         <main class="main-content">
-            <!-- Боковое меню -->
-            <aside class="sidebar">
-                <nav class="main-nav">
-                    <button class="nav-btn active" data-section="projects">
-                        <i class="fas fa-bullseye"></i>
-                        <span>Проекты</span>
-                    </button>
-                    <button class="nav-btn" data-section="habits">
-                        <i class="fas fa-redo"></i>
-                        <span>Привычки</span>
-                    </button>
-                    <button class="nav-btn" data-section="stats">
-                        <i class="fas fa-chart-line"></i>
-                        <span>Статистика</span>
-                    </button>
-                    <button class="nav-btn" data-section="achievements">
-                        <i class="fas fa-trophy"></i>
-                        <span>Ачивки</span>
-                    </button>
-                    <button class="nav-btn" data-section="shop">
-                        <i class="fas fa-shopping-cart"></i>
-                        <span>Магазин</span>
-                    </button>
-                    <button class="nav-btn" data-section="settings">
-                        <i class="fas fa-cog"></i>
-                        <span>Настройки</span>
-                    </button>
-                </nav>
-                
-                <div class="streak-display">
-                    <div class="streak-label">🔥 Стрик</div>
-                    <div id="streak" class="streak-value">0 дней</div>
-                </div>
-            </aside>
-
-            <!-- Основная область -->
-            <div class="content-area">
-                <!-- Проекты -->
-                <section id="projects-section" class="content-section active">
-                    <div class="section-header">
-                        <h2><i class="fas fa-bullseye"></i> Мои проекты</h2>
-                        <button id="new-project-btn" class="btn-primary">
-                            <i class="fas fa-plus"></i> Новый проект
-                        </button>
+            <!-- Projects Section -->
+            <section id="projects-section" class="content-section active">
+                <div class="section-header">
+                    <div>
+                        <h2>Мои проекты</h2>
+                        <p class="section-subtitle">Отслеживайте прогресс по вашим целям</p>
                     </div>
-                    
-                    <div class="filters">
-                        <select id="project-category-filter" class="filter-select">
-                            <option value="all">Все категории</option>
+                    <button class="btn btn-primary" id="new-project-btn">
+                        <i class="fas fa-plus"></i> Новый проект
+                    </button>
+                </div>
+
+                <div class="filters">
+                    <div class="filter-group">
+                        <label for="category-filter">Категория</label>
+                        <select id="category-filter" class="filter-select">
+                            <option value="all">Все</option>
                         </select>
-                        <select id="project-status-filter" class="filter-select">
-                            <option value="all">Все статусы</option>
+                    </div>
+                    <div class="filter-group">
+                        <label for="status-filter">Статус</label>
+                        <select id="status-filter" class="filter-select">
+                            <option value="all">Все</option>
                             <option value="active">Активные</option>
-                            <option value="completed">Завершенные</option>
-                            <option value="overdue">Просроченные</option>
+                            <option value="completed">Завершённые</option>
                         </select>
-                        <select id="project-sort" class="filter-select">
+                    </div>
+                    <div class="filter-group">
+                        <label for="sort-by">Сортировка</label>
+                        <select id="sort-by" class="filter-select">
                             <option value="deadline">По дедлайну</option>
                             <option value="progress">По прогрессу</option>
-                            <option value="newest">Сначала новые</option>
+                            <option value="name">По названию</option>
                         </select>
                     </div>
-                    
-                    <div class="projects-grid" id="projects-grid">
-                        <!-- Проекты будут здесь -->
-                    </div>
-                </section>
+                </div>
 
-                <!-- Привычки -->
-                <section id="habits-section" class="content-section">
-                    <div class="section-header">
-                        <h2><i class="fas fa-redo"></i> Мои привычки</h2>
-                        <button id="new-habit-btn" class="btn-primary">
-                            <i class="fas fa-plus"></i> Новая привычка
-                        </button>
-                    </div>
-                    
-                    <div class="habits-container">
-                        <div class="daily-habits">
-                            <h3>Сегодня</h3>
-                            <div id="today-habits" class="habits-list">
-                                <!-- Сегодняшние привычки -->
-                            </div>
-                        </div>
-                        
-                        <div class="weekly-stats">
-                            <h3>За неделю</h3>
-                            <div id="weekly-habits" class="week-grid">
-                                <!-- Статистика за неделю -->
-                            </div>
-                        </div>
-                    </div>
-                </section>
+                <div class="projects-grid" id="projects-grid">
+                    <!-- Projects will be dynamically added here -->
+                </div>
+            </section>
 
-                <!-- Статистика -->
-                <section id="stats-section" class="content-section">
-                    <div class="section-header">
-                        <h2><i class="fas fa-chart-line"></i> Статистика</h2>
-                        <select id="time-period" class="filter-select">
-                            <option value="week">За неделю</option>
-                            <option value="month">За месяц</option>
-                            <option value="all">Все время</option>
-                        </select>
+            <!-- Habits Section -->
+            <section id="habits-section" class="content-section">
+                <div class="section-header">
+                    <div>
+                        <h2>Мои привычки</h2>
+                        <p class="section-subtitle">Ежедневные и еженедельные рутины</p>
                     </div>
-                    
-                    <div class="stats-container">
-                        <div class="stat-card">
-                            <h3>Прогресс проектов</h3>
-                            <div id="projects-progress" class="progress-list">
-                                <!-- Прогресс-бары проектов -->
-                            </div>
-                        </div>
-                        
-                        <div class="stat-card">
-                            <h3>Рост уровня</h3>
-                            <canvas id="level-chart"></canvas>
-                        </div>
-                        
-                        <div class="stat-card">
-                            <h3>Активность по дням</h3>
-                            <div id="activity-calendar" class="activity-calendar">
-                                <!-- Календарь активности -->
-                            </div>
-                        </div>
-                    </div>
-                </section>
+                    <button class="btn btn-primary" id="new-habit-btn">
+                        <i class="fas fa-plus"></i> Новая привычка
+                    </button>
+                </div>
 
-                <!-- Ачивки -->
-                <section id="achievements-section" class="content-section">
-                    <div class="section-header">
-                        <h2><i class="fas fa-trophy"></i> Мои ачивки</h2>
-                        <div class="achievement-summary">
-                            <span id="achieved-count">0</span>/<span id="total-achievements">0</span> получено
+                <div class="habits-container">
+                    <div class="today-habits">
+                        <h3>Сегодня</h3>
+                        <div id="today-habits-list" class="habits-list">
+                            <!-- Today's habits will be added here -->
                         </div>
                     </div>
-                    
-                    <div class="achievements-grid" id="achievements-grid">
-                        <!-- Ачивки будут здесь -->
+                    <div class="weekly-overview">
+                        <h3>Недельный обзор</h3>
+                        <div id="week-grid" class="week-grid">
+                            <!-- Week grid will be added here -->
+                        </div>
                     </div>
-                </section>
+                </div>
+            </section>
 
-                <!-- Магазин -->
-                <section id="shop-section" class="content-section">
-                    <div class="section-header">
-                        <h2><i class="fas fa-shopping-cart"></i> Магазин</h2>
-                        <div class="coins-display">
+            <!-- Stats Section -->
+            <section id="stats-section" class="content-section">
+                <div class="section-header">
+                    <div>
+                        <h2>Статистика</h2>
+                        <p class="section-subtitle">Ваш прогресс в цифрах</p>
+                    </div>
+                    <select id="stats-period" class="filter-select">
+                        <option value="week">Неделя</option>
+                        <option value="month">Месяц</option>
+                        <option value="all">Всё время</option>
+                    </select>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-fire"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="streak">0</div>
+                            <div class="stat-label">Дней подряд</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="completed-tasks">0</div>
+                            <div class="stat-label">Выполнено задач</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="active-projects">0</div>
+                            <div class="stat-label">Активных проектов</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
                             <i class="fas fa-coins"></i>
-                            <span id="shop-coins">0</span>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="total-coins">0</div>
+                            <div class="stat-label">Всего монет</div>
                         </div>
                     </div>
-                    
-                    <div class="shop-info">
-                        <p>Здесь скоро появятся предметы, которые можно купить за монеты!</p>
-                        <p>Монеты получаются за выполнение задач и привычек.</p>
-                    </div>
-                    
-                    <div class="shop-items" id="shop-items">
-                        <!-- Товары будут здесь -->
-                    </div>
-                </section>
+                </div>
 
-                <!-- Настройки -->
-                <section id="settings-section" class="content-section">
-                    <div class="section-header">
-                        <h2><i class="fas fa-cog"></i> Настройки</h2>
+                <div class="chart-container">
+                    <h3>Прогресс проектов</h3>
+                    <div id="projects-progress" class="progress-list">
+                        <!-- Project progress bars will be added here -->
                     </div>
-                    
-                    <div class="settings-container">
-                        <div class="setting-group">
-                            <h3><i class="fas fa-palette"></i> Внешний вид</h3>
-                            <div class="theme-options">
-                                <button class="theme-option active" data-theme="dark">
-                                    <div class="theme-preview dark"></div>
-                                    <span>Темная</span>
-                                </button>
-                                <button class="theme-option" data-theme="light">
-                                    <div class="theme-preview light"></div>
-                                    <span>Светлая</span>
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div class="setting-group">
-                            <h3><i class="fas fa-tags"></i> Категории</h3>
-                            <div class="categories-list" id="settings-categories">
-                                <!-- Список категорий -->
-                            </div>
-                            <div class="add-category-form">
-                                <input type="text" id="new-category-name" placeholder="Новая категория">
-                                <input type="color" id="new-category-color" value="#6a11cb">
-                                <button id="add-category-btn" class="btn-secondary">Добавить</button>
-                            </div>
-                        </div>
-                        
-                        <div class="setting-group">
-                            <h3><i class="fas fa-database"></i> Данные</h3>
-                            <div class="data-actions">
-                                <button id="export-data-btn" class="btn-secondary">
-                                    <i class="fas fa-download"></i> Экспорт данных
-                                </button>
-                                <button id="import-data-btn" class="btn-secondary">
-                                    <i class="fas fa-upload"></i> Импорт данных
-                                </button>
-                                <button id="backup-btn" class="btn-success">
-                                    <i class="fas fa-save"></i> Создать бэкап
-                                </button>
-                                <button id="reset-data-btn" class="btn-danger">
-                                    <i class="fas fa-trash"></i> Сбросить все данные
-                                </button>
-                            </div>
-                            <input type="file" id="import-file" accept=".json" style="display: none;">
+                </div>
+            </section>
+
+            <!-- Achievements Section -->
+            <section id="achievements-section" class="content-section">
+                <div class="section-header">
+                    <div>
+                        <h2>Ачивки</h2>
+                        <p class="section-subtitle">Достижения и награды</p>
+                    </div>
+                    <div class="achievement-summary">
+                        <span id="achieved-count">0</span> из <span id="total-achievements">0</span>
+                    </div>
+                </div>
+
+                <div class="achievements-grid" id="achievements-grid">
+                    <!-- Achievements will be added here -->
+                </div>
+            </section>
+
+            <!-- Settings Panel (Initially hidden) -->
+            <div id="settings-panel" class="settings-panel">
+                <div class="settings-header">
+                    <h3>Настройки</h3>
+                    <button class="icon-btn close-settings">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="settings-content">
+                    <div class="setting-group">
+                        <h4>Внешний вид</h4>
+                        <div class="theme-options">
+                            <button class="theme-option active" data-theme="light">
+                                <i class="fas fa-sun"></i>
+                                <span>Светлая</span>
+                            </button>
+                            <button class="theme-option" data-theme="dark">
+                                <i class="fas fa-moon"></i>
+                                <span>Тёмная</span>
+                            </button>
                         </div>
                     </div>
-                </section>
+
+                    <div class="setting-group">
+                        <h4>Категории</h4>
+                        <div id="categories-list" class="categories-list">
+                            <!-- Categories will be added here -->
+                        </div>
+                        <div class="add-category">
+                            <input type="text" id="new-category" placeholder="Новая категория">
+                            <input type="color" id="category-color" value="#007AFF">
+                            <button id="add-category-btn" class="btn btn-secondary">Добавить</button>
+                        </div>
+                    </div>
+
+                    <div class="setting-group">
+                        <h4>Данные</h4>
+                        <div class="data-actions">
+                            <button id="export-btn" class="btn btn-secondary">
+                                <i class="fas fa-download"></i> Экспорт данных
+                            </button>
+                            <button id="import-btn" class="btn btn-secondary">
+                                <i class="fas fa-upload"></i> Импорт данных
+                            </button>
+                            <button id="backup-btn" class="btn btn-success">
+                                <i class="fas fa-save"></i> Создать бэкап
+                            </button>
+                            <button id="reset-btn" class="btn btn-danger">
+                                <i class="fas fa-trash"></i> Сбросить данные
+                            </button>
+                        </div>
+                        <input type="file" id="import-file" accept=".json" style="display: none;">
+                    </div>
+                </div>
             </div>
         </main>
 
-        <!-- Модальные окна -->
+        <!-- Modals -->
         <div id="project-modal" class="modal">
             <div class="modal-content">
-                <h2><i class="fas fa-bullseye"></i> Новый проект</h2>
+                <div class="modal-header">
+                    <h3>Новый проект</h3>
+                    <button class="icon-btn close-modal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
                 <form id="project-form">
                     <div class="form-group">
-                        <label for="project-title">Название проекта</label>
-                        <input type="text" id="project-title" required>
+                        <label for="project-name">Название проекта</label>
+                        <input type="text" id="project-name" required>
                     </div>
-                    
                     <div class="form-group">
                         <label for="project-description">Описание (необязательно)</label>
                         <textarea id="project-description" rows="3"></textarea>
                     </div>
-                    
                     <div class="form-row">
                         <div class="form-group">
                             <label for="project-category">Категория</label>
                             <select id="project-category">
-                                <!-- Категории подгружаются -->
+                                <!-- Categories will be populated -->
                             </select>
                         </div>
                         <div class="form-group">
@@ -289,85 +300,79 @@
                             <input type="date" id="project-deadline">
                         </div>
                     </div>
-                    
                     <div class="form-group">
                         <label>Задачи проекта</label>
-                        <div class="tasks-container" id="tasks-container">
-                            <div class="task-item">
-                                <input type="text" class="task-title" placeholder="Название задачи" required>
+                        <div id="tasks-container">
+                            <div class="task-input">
+                                <input type="text" class="task-name" placeholder="Название задачи" required>
                                 <input type="number" class="task-xp" placeholder="XP" min="1" value="10">
-                                <button type="button" class="remove-task-btn"><i class="fas fa-times"></i></button>
+                                <button type="button" class="btn-icon remove-task">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </div>
                         </div>
-                        <button type="button" id="add-task-btn" class="btn-secondary">
+                        <button type="button" id="add-task-btn" class="btn btn-secondary">
                             <i class="fas fa-plus"></i> Добавить задачу
                         </button>
                     </div>
-                    
                     <div class="modal-actions">
-                        <button type="submit" class="btn-primary">Создать проект</button>
-                        <button type="button" id="cancel-project-btn" class="btn-secondary">Отмена</button>
+                        <button type="submit" class="btn btn-primary">Создать проект</button>
+                        <button type="button" class="btn btn-secondary close-modal">Отмена</button>
                     </div>
                 </form>
             </div>
         </div>
-        
-        <div id="task-modal" class="modal">
-            <div class="modal-content">
-                <!-- Модалка для редактирования задачи -->
-            </div>
-        </div>
-        
+
         <div id="habit-modal" class="modal">
             <div class="modal-content">
-                <h2><i class="fas fa-redo"></i> Новая привычка</h2>
+                <div class="modal-header">
+                    <h3>Новая привычка</h3>
+                    <button class="icon-btn close-modal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
                 <form id="habit-form">
                     <div class="form-group">
-                        <label for="habit-title">Название привычки</label>
-                        <input type="text" id="habit-title" required>
+                        <label for="habit-name">Название привычки</label>
+                        <input type="text" id="habit-name" required>
                     </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="habit-category">Категория</label>
-                            <select id="habit-category">
-                                <!-- Категории подгружаются -->
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="habit-xp">XP за выполнение</label>
-                            <input type="number" id="habit-xp" min="1" value="10">
-                        </div>
-                    </div>
-                    
                     <div class="form-group">
-                        <label>Повторяемость</label>
+                        <label for="habit-category">Категория</label>
+                        <select id="habit-category">
+                            <!-- Categories will be populated -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="habit-xp">XP за выполнение</label>
+                        <input type="number" id="habit-xp" min="1" value="10">
+                    </div>
+                    <div class="form-group">
+                        <label>Тип привычки</label>
                         <div class="radio-group">
-                            <label>
+                            <label class="radio-option">
                                 <input type="radio" name="habit-type" value="daily" checked>
-                                Ежедневно
+                                <span>Ежедневная</span>
                             </label>
-                            <label>
+                            <label class="radio-option">
                                 <input type="radio" name="habit-type" value="weekly">
-                                Еженедельно
+                                <span>Еженедельная</span>
                             </label>
                         </div>
                     </div>
-                    
                     <div class="modal-actions">
-                        <button type="submit" class="btn-primary">Создать привычку</button>
-                        <button type="button" id="cancel-habit-btn" class="btn-secondary">Отмена</button>
+                        <button type="submit" class="btn btn-primary">Создать привычку</button>
+                        <button type="button" class="btn btn-secondary close-modal">Отмена</button>
                     </div>
                 </form>
             </div>
         </div>
 
-        <!-- Уведомления -->
-        <div id="notification-area"></div>
+        <!-- Notification Toast -->
+        <div id="toast" class="toast"></div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
-    <script src="script.js"></script>
+    <script>
+        /* JavaScript будет вставлен ниже */
+    </script>
 </body>
 </html>
