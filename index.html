@@ -1717,6 +1717,9 @@ body.dark-theme .mobile-nav-item {
                             </button>
                         </div>
                     </div>
+                    <button id="fix-xp-btn" class="btn btn-warning">
+    <i class="fas fa-wrench"></i> <span>Исправить XP</span>
+</button>
 
                     <div class="setting-group">
                         <h4>Категории</h4>
@@ -2011,35 +2014,35 @@ class LifeGame {
 
     // Создание данных по умолчанию
     createDefaultData() {
-        this.data = {
-            version: this.version,
-            user: {
-                level: 1,
-                xp: 0,
-                totalXP: 0,
-                xpToNextLevel: 100,
-                coins: 0,
-                streak: 0,
-                maxStreak: 0,
-                lastActive: new Date().toISOString().split('T')[0],
-                theme: 'light'
-            },
-            projects: [],
-            habits: [],
-            achievements: this.achievements.map(a => ({ ...a })),
-            stats: {
-                totalDays: 1,
-                completedTasks: 0,
-                completedProjects: 0,
-                totalHabits: 0,
-                photosThisWeek: 0,
-                codingTasks: 0,
-                videosEdited: 0,
-                booksRead: 0
-            }
-        };
-        this.saveData();
-    }
+    this.data = {
+        version: this.version,
+        user: {
+            level: 1,
+            xp: 0,
+            totalXP: 0,
+            xpToNextLevel: 100,
+            coins: 0,
+            streak: 0,
+            maxStreak: 0,
+            lastActive: new Date().toISOString().split('T')[0],
+            theme: 'light'
+        },
+        projects: [],
+        habits: [],
+        achievements: this.achievements.map(a => ({ ...a })),
+        stats: {
+            totalDays: 1,
+            completedTasks: 0,
+            completedProjects: 0,
+            totalHabits: 0,
+            photosThisWeek: 0,
+            codingTasks: 0,
+            videosEdited: 0,
+            booksRead: 0
+        }
+    };
+    this.saveData();
+}
 
     // Миграция старых данных
     migrateOldData(oldData) {
@@ -2176,7 +2179,34 @@ class LifeGame {
                 }
             });
         });
-
+// В методе setupEventListeners добавить:
+document.getElementById('fix-xp-btn').addEventListener('click', () => {
+    if (confirm('Исправить XP и уровни? Это исправит возможные ошибки в данных.')) {
+        // Исправляем отрицательные XP
+        if (this.data.user.xp < 0) {
+            this.data.user.xp = 0;
+        }
+        
+        // Пересчитываем уровень на основе totalXP
+        let tempXP = this.data.user.totalXP;
+        let level = 1;
+        let xpNeeded = 100;
+        
+        while (tempXP >= xpNeeded) {
+            tempXP -= xpNeeded;
+            level++;
+            xpNeeded = level * 100;
+        }
+        
+        this.data.user.level = level;
+        this.data.user.xp = tempXP;
+        this.data.user.xpToNextLevel = xpNeeded;
+        
+        this.saveData();
+        this.updateUI();
+        this.showToast('XP и уровни исправлены!', 'success');
+    }
+});
         // Настройка темы в настройках
         this.setupThemeOptions();
     }
@@ -2312,28 +2342,52 @@ class LifeGame {
     }
 
     // Добавление XP
-    addXP(amount, source) {
-        this.data.user.xp += amount;
-        this.data.user.totalXP += amount;
+    // ИСПРАВЛЕННЫЙ МЕТОД addXP
+addXP(amount, source) {
+    // Гарантируем, что amount положительный
+    const xpToAdd = Math.max(1, Math.abs(amount));
+    
+    console.log('Adding XP:', xpToAdd, 'from:', source);
+    
+    // Добавляем XP
+    this.data.user.xp += xpToAdd;
+    this.data.user.totalXP += xpToAdd;
+    
+    // Проверка нового уровня
+    while (this.data.user.xp >= this.data.user.xpToNextLevel) {
+        this.data.user.xp -= this.data.user.xpToNextLevel;
+        this.data.user.level++;
+        this.data.user.xpToNextLevel = this.data.user.level * 100;
         
-        // Проверка нового уровня
-        while (this.data.user.xp >= this.data.user.xpToNextLevel) {
-            this.data.user.xp -= this.data.user.xpToNextLevel;
-            this.data.user.level++;
-            this.data.user.xpToNextLevel = this.data.user.level * 100;
-            
-            // Награда за уровень
-            this.data.user.coins += this.data.user.level * 10;
-            this.showToast(`🎉 Уровень ${this.data.user.level}! +${this.data.user.level * 10} монет`, 'success');
-            
-            // Проверка ачивок за уровень
-            if (this.data.user.level >= 5) {
-                this.unlockAchievement(5);
-            }
-            if (this.data.user.level >= 20) {
-                this.unlockAchievement(10);
-            }
+        // Награда за уровень
+        this.data.user.coins += this.data.user.level * 10;
+        this.showToast(`🎉 Уровень ${this.data.user.level}! +${this.data.user.level * 10} монет`, 'success');
+        
+        // Проверка ачивок за уровень
+        if (this.data.user.level >= 5) {
+            this.unlockAchievement(5);
         }
+        if (this.data.user.level >= 20) {
+            this.unlockAchievement(10);
+        }
+    }
+    
+    // Добавляем монеты
+    const coinsEarned = Math.max(1, Math.floor(xpToAdd / 5));
+    this.data.user.coins += coinsEarned;
+    
+    // Проверка ачивки "Богач"
+    if (this.data.user.coins >= 1000) {
+        this.unlockAchievement(9);
+    }
+    
+    this.saveData();
+    this.updateUI();
+    
+    if (source) {
+        this.showToast(`+${xpToAdd} XP (${source})`, 'success');
+    }
+}
         
         // Добавление монет
         const coinsEarned = Math.floor(amount / 5);
@@ -2353,23 +2407,47 @@ class LifeGame {
     }
 
     // Обновление UI
-    updateUI() {
-        // Обновляем информацию пользователя
-        document.getElementById('level').textContent = this.data.user.level;
-        document.getElementById('current-xp').textContent = this.data.user.xp;
-        document.getElementById('needed-xp').textContent = this.data.user.xpToNextLevel;
-        document.getElementById('coins').textContent = this.data.user.coins;
-        
-        // Обновляем прогресс-бар XP
-        const xpPercent = (this.data.user.xp / this.data.user.xpToNextLevel) * 100;
-        const xpFill = document.getElementById('xp-progress-fill');
-        if (xpFill) {
-            xpFill.style.width = `${xpPercent}%`;
-            document.getElementById('xp-text').textContent = `${this.data.user.xp}/${this.data.user.xpToNextLevel} XP`;
-        }
-        
-        this.updateStats();
+// ИСПРАВЛЕННЫЙ МЕТОД updateUI
+updateUI() {
+    // Убеждаемся, что XP не отрицательные
+    if (this.data.user.xp < 0) {
+        console.warn('XP стали отрицательными, исправляем на 0');
+        this.data.user.xp = 0;
+        this.saveData();
     }
+    
+    // Убеждаемся, что уровень не меньше 1
+    if (this.data.user.level < 1) {
+        this.data.user.level = 1;
+    }
+    
+    // Обновляем информацию пользователя
+    const levelElement = document.getElementById('level');
+    const currentXpElement = document.getElementById('current-xp');
+    const neededXpElement = document.getElementById('needed-xp');
+    const coinsElement = document.getElementById('coins');
+    const xpFill = document.getElementById('xp-progress-fill');
+    const xpText = document.getElementById('xp-text');
+    
+    if (levelElement) {
+        levelElement.textContent = this.data.user.level;
+        console.log('Level updated to:', this.data.user.level);
+    }
+    
+    if (currentXpElement) currentXpElement.textContent = this.data.user.xp;
+    if (neededXpElement) neededXpElement.textContent = this.data.user.xpToNextLevel;
+    if (coinsElement) coinsElement.textContent = this.data.user.coins;
+    
+    // Обновляем прогресс-бар XP
+    if (xpFill && xpText) {
+        const xpPercent = (this.data.user.xp / this.data.user.xpToNextLevel) * 100;
+        xpFill.style.width = `${Math.min(xpPercent, 100)}%`;
+        xpText.textContent = `${this.data.user.xp}/${this.data.user.xpToNextLevel} XP`;
+        console.log('XP updated:', this.data.user.xp, '/', this.data.user.xpToNextLevel);
+    }
+    
+    this.updateStats();
+}
 
     // Обновление статистики
     updateStats() {
@@ -2473,23 +2551,26 @@ class LifeGame {
                         ${isSoon && !isOverdue ? '<span class="deadline-soon"> • Скоро дедлайн</span>' : ''}
                     </div>
                     
-                    <div class="project-tasks">
-                        <h4>Задачи (${this.getCompletedTasksCount(project)}/${project.tasks?.length || 0})</h4>
-                        ${project.tasks && project.tasks.length > 0 ? `
-                            <ul>
-                                ${project.tasks.map((task, index) => `
-                                    <li class="task-item ${task.completed ? 'completed' : ''}" data-task-id="${index}">
-                                        <div class="task-checkbox ${task.completed ? 'checked' : ''}" 
-                                             onclick="game.toggleTask(${project.id}, ${index})">
-                                            <i class="fas fa-check"></i>
-                                        </div>
-                                        <span class="task-text">${task.title}</span>
-                                        <span class="task-xp-badge">+${task.xp} XP</span>
-                                    </li>
-                                `).join('')}
-                            </ul>
-                        ` : '<p style="opacity: 0.7; font-style: italic;">Нет задач</p>'}
+                    // В методе renderProjects найти рендеринг задач и заменить на:
+<div class="project-tasks">
+    <h4>Задачи (${this.getCompletedTasksCount(project)}/${project.tasks?.length || 0})</h4>
+    ${project.tasks && project.tasks.length > 0 ? `
+        <ul>
+            ${project.tasks.map((task, index) => `
+                <li class="task-item ${task.completed ? 'completed' : ''}" 
+                    data-project-id="${project.id}"
+                    data-task-index="${index}">
+                    <div class="task-checkbox ${task.completed ? 'checked' : ''}" 
+                         onclick="game.toggleTask(${project.id}, ${index})">
+                        <i class="fas fa-check"></i>
                     </div>
+                    <span class="task-text">${task.title}</span>
+                    <span class="task-xp-badge">+${task.xp || 10} XP</span>
+                </li>
+            `).join('')}
+        </ul>
+    ` : '<p style="opacity: 0.7; font-style: italic;">Нет задач</p>'}
+</div>
                 </div>
             `;
         }).join('');
@@ -2521,40 +2602,105 @@ class LifeGame {
     }
 
     // Переключение задачи
-    toggleTask(projectId, taskIndex) {
-        const project = this.data.projects.find(p => p.id == projectId);
-        if (!project || !project.tasks[taskIndex]) return;
-        
-        const task = project.tasks[taskIndex];
-        task.completed = !task.completed;
-        
-        // Обновляем статистику по категориям
-        if (task.completed) {
-            if (project.category === 'work' && task.title.toLowerCase().includes('фото')) {
-                this.data.stats.photosThisWeek++;
-            }
-            if (project.category === 'work' && task.title.toLowerCase().includes('код')) {
-                this.data.stats.codingTasks++;
-                // Проверка ачивки "Кодер месяца"
-                if (this.data.stats.codingTasks >= 50) {
-                    this.unlockAchievement(12);
-                }
-            }
-            if (project.category === 'work' && task.title.toLowerCase().includes('монтаж')) {
-                this.data.stats.videosEdited++;
-                // Проверка ачивки "Мастер монтажа"
-                if (this.data.stats.videosEdited >= 5) {
-                    this.unlockAchievement(13);
-                }
-            }
-            if (project.category === 'learning' && task.title.toLowerCase().includes('книг')) {
-                this.data.stats.booksRead++;
-                // Проверка ачивки "Книжный червь"
-                if (this.data.stats.booksRead >= 10) {
-                    this.unlockAchievement(15);
-                }
-            }
+// ИСПРАВЛЕННЫЙ МЕТОД toggleTask
+toggleTask(projectId, taskIndex) {
+    console.log('Toggle task called for project:', projectId, 'task index:', taskIndex);
+    
+    // Ищем проект
+    const project = this.data.projects.find(p => p.id == projectId);
+    if (!project || !project.tasks || !project.tasks[taskIndex]) {
+        console.error('Project or task not found');
+        return;
+    }
+    
+    const task = project.tasks[taskIndex];
+    task.completed = !task.completed;
+    
+    // Обновляем статистику и XP
+    if (task.completed) {
+        const xpGained = task.xp || 10;
+        this.addXP(xpGained, `Задача: ${task.title}`);
+        this.data.stats.completedTasks++;
+    } else {
+        // Если снимаем галочку - корректно уменьшаем XP (но не ниже 0)
+        const xpToRemove = task.xp || 10;
+        if (this.data.user.xp >= xpToRemove) {
+            this.data.user.xp -= xpToRemove;
+            this.data.user.totalXP -= xpToRemove;
+        } else {
+            // Если XP меньше, чем нужно отнять, устанавливаем на 0
+            this.data.user.xp = 0;
         }
+        this.data.stats.completedTasks--;
+    }
+    
+    // Проверяем, завершен ли проект
+    const allCompleted = project.tasks.every(t => t.completed);
+    if (allCompleted && !project.completed) {
+        project.completed = true;
+        this.data.stats.completedProjects++;
+        const bonusXP = Math.floor((project.tasks.length * 20) / 2); // Уменьшил бонус
+        this.addXP(bonusXP, `Завершение проекта: ${project.title}`);
+        this.showToast(`🎉 Проект "${project.title}" завершён!`, 'success');
+    } else if (!allCompleted && project.completed) {
+        project.completed = false;
+        this.data.stats.completedProjects--;
+    }
+    
+    this.saveData();
+    
+    // НЕМЕДЛЕННО обновляем UI без полной перерисовки
+    this.updateTaskUI(projectId, taskIndex, task.completed);
+    this.updateProjectProgress(projectId);
+    this.updateUI();
+}
+
+// ДОБАВИТЬ этот новый метод после toggleTask
+updateTaskUI(projectId, taskIndex, completed) {
+    // Обновляем визуальное состояние задачи
+    const taskElement = document.querySelector(`[data-project-id="${projectId}"] [data-task-index="${taskIndex}"]`);
+    if (taskElement) {
+        const checkbox = taskElement.querySelector('.task-checkbox');
+        if (checkbox) {
+            checkbox.classList.toggle('checked', completed);
+            checkbox.innerHTML = completed ? '<i class="fas fa-check"></i>' : '';
+        }
+        
+        // Обновляем текст задачи
+        const taskText = taskElement.querySelector('.task-text');
+        if (taskText) {
+            taskText.style.textDecoration = completed ? 'line-through' : 'none';
+            taskText.style.opacity = completed ? '0.6' : '1';
+        }
+    }
+}
+
+// ДОБАВИТЬ этот новый метод
+updateProjectProgress(projectId) {
+    const project = this.data.projects.find(p => p.id == projectId);
+    if (!project) return;
+    
+    const progress = this.getProjectProgress(project);
+    
+    // Обновляем прогресс в карточке проекта
+    const progressElement = document.querySelector(`[data-project-id="${projectId}"] .progress-text span:last-child`);
+    if (progressElement) {
+        progressElement.textContent = `${progress}%`;
+    }
+    
+    // Обновляем прогресс-бар
+    const progressFill = document.querySelector(`[data-project-id="${projectId}"] .progress-fill`);
+    if (progressFill) {
+        progressFill.style.width = `${progress}%`;
+    }
+    
+    // Обновляем счетчик задач
+    const taskCounter = document.querySelector(`[data-project-id="${projectId}"] h4`);
+    if (taskCounter) {
+        const completed = this.getCompletedTasksCount(project);
+        taskCounter.textContent = `Задачи (${completed}/${project.tasks.length})`;
+    }
+}
         
         // Начисление XP
         if (task.completed) {
@@ -2758,25 +2904,26 @@ class LifeGame {
         
         // Сегодняшние привычки
         const todayHabits = this.data.habits.filter(habit => habit.type === 'daily');
-        todayList.innerHTML = todayHabits.map(habit => {
-            const category = this.categories.find(c => c.id === habit.category);
-            
-            return `
-                <div class="habit-item" data-habit-id="${habit.id}">
-                    <div class="habit-checkbox ${habit.completed ? 'checked' : ''}" 
-                         onclick="game.toggleHabit(${habit.id})">
-                        <i class="fas fa-check"></i>
-                    </div>
-                    <div class="habit-info">
-                        <div class="habit-name">${habit.title}</div>
-                        <div class="habit-xp">+${habit.xp} XP</div>
-                    </div>
-                    <span class="project-category" style="background-color: ${category?.color}20; color: ${category?.color}; font-size: 0.75rem; padding: 0.25rem 0.5rem;">
-                        ${category?.name || 'Без категории'}
-                    </span>
-                </div>
-            `;
-        }).join('');
+        // В методе renderHabits заменить рендеринг привычек на:
+todayList.innerHTML = this.data.habits.filter(habit => habit.type === 'daily').map(habit => {
+    const category = this.categories.find(c => c.id === habit.category);
+    
+    return `
+        <div class="habit-item" data-habit-id="${habit.id}">
+            <div class="habit-checkbox ${habit.completed ? 'checked' : ''}" 
+                 onclick="game.toggleHabit('${habit.id}')">
+                ${habit.completed ? '<i class="fas fa-check"></i>' : ''}
+            </div>
+            <div class="habit-info">
+                <div class="habit-name">${habit.title}</div>
+                <div class="habit-xp">+${habit.xp} XP</div>
+            </div>
+            <span class="project-category" style="background-color: ${category?.color}20; color: ${category?.color}; font-size: 0.75rem; padding: 0.25rem 0.5rem;">
+                ${category?.name || 'Без категории'}
+            </span>
+        </div>
+    `;
+}).join('');
         
         if (todayHabits.length === 0) {
             todayList.innerHTML = `
@@ -2826,48 +2973,62 @@ class LifeGame {
     }
 
     // Переключение привычки
-    toggleHabit(habitId) {
-        const habit = this.data.habits.find(h => h.id == habitId);
-        if (!habit) return;
-        
-        habit.completed = !habit.completed;
-        
-        if (habit.completed) {
-            this.addXP(habit.xp, `Привычка: ${habit.title}`);
-            this.data.stats.totalHabits++;
-            
-            // Проверка ачивки "Мастер привычек"
-            if (this.data.stats.totalHabits >= 7) {
-                this.unlockAchievement(4);
-            }
-            
-            // Проверка ачивки "Дисциплинированный"
-            if (this.data.stats.totalHabits >= 30) {
-                this.unlockAchievement(7);
-            }
-            
-            // Проверка ачивки "ЗОЖник" для привычек здоровья
-            if (habit.category === 'health' && this.data.stats.totalHabits >= 30) {
-                this.unlockAchievement(14);
-            }
-        } else {
-            this.data.stats.totalHabits--;
-        }
-        
-        this.saveData();
-        
-        // Обновляем визуальное состояние чекбокса
-        const habitItem = document.querySelector(`.habit-item[data-habit-id="${habitId}"]`);
-        if (habitItem) {
-            const checkbox = habitItem.querySelector('.habit-checkbox');
-            if (checkbox) {
-                checkbox.classList.toggle('checked', habit.completed);
-            }
-        }
-        
-        this.updateUI();
+    // ИСПРАВЛЕННЫЙ МЕТОД toggleHabit
+toggleHabit(habitId) {
+    console.log('Toggle habit called with ID:', habitId);
+    
+    // Преобразуем habitId в число, если нужно
+    const id = Number(habitId);
+    const habit = this.data.habits.find(h => h.id === id);
+    
+    if (!habit) {
+        console.error('Habit not found with ID:', id);
+        this.showToast('Привычка не найдена', 'error');
+        return;
     }
-
+    
+    habit.completed = !habit.completed;
+    console.log('Habit toggled:', habit.title, 'completed:', habit.completed);
+    
+    if (habit.completed) {
+        this.addXP(habit.xp, `Привычка: ${habit.title}`);
+        this.data.stats.totalHabits++;
+        
+        // Проверка ачивок
+        if (this.data.stats.totalHabits % 7 === 0) {
+            this.unlockAchievement(4);
+        }
+        
+        // Обновляем визуально
+        const habitElement = document.querySelector(`[data-habit-id="${habit.id}"]`);
+        if (habitElement) {
+            const checkbox = habitElement.querySelector('.habit-checkbox');
+            if (checkbox) {
+                checkbox.classList.add('checked');
+                checkbox.innerHTML = '<i class="fas fa-check"></i>';
+            }
+        }
+    } else {
+        // Если снимаем галочку - отнимаем XP (исправляем отрицательные значения)
+        if (this.data.user.xp >= habit.xp) {
+            this.data.user.xp -= habit.xp;
+        }
+        this.data.stats.totalHabits--;
+        
+        // Обновляем визуально
+        const habitElement = document.querySelector(`[data-habit-id="${habit.id}"]`);
+        if (habitElement) {
+            const checkbox = habitElement.querySelector('.habit-checkbox');
+            if (checkbox) {
+                checkbox.classList.remove('checked');
+                checkbox.innerHTML = '';
+            }
+        }
+    }
+    
+    this.saveData();
+    this.updateUI();
+}
     // Показать модальное окно привычки
     showHabitModal() {
         const modal = document.getElementById('habit-modal');
